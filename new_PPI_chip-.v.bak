@@ -1,0 +1,105 @@
+
+// Model of the Programmable peripheral interface
+
+module PPI_Chip (PA,PB,PCL,PCH,Data,nRD,nWR,nCS,A,reset)
+input reset, nCS, nRD, nWR;
+input [1:0] A;
+inout [7:0] PA, [7:0] PB;
+inout [3:0] PCL, [3:0] PCH;
+inout [7:0] Data ;
+reg [7:0] CWR; 
+
+always @ (negedge nCS or posedge reset)
+begin
+
+if ( (A=2'b11) && (nWR=1'b0) )
+begin
+CWR<=Data;
+
+//Check BSR Mode:  
+if (CWR[7]=1'b0)
+begin  PC [CWR[3:1]]<=CWR[0]; end 
+
+
+//Check the I/O Mode:
+else 
+begin
+//Check the Simple I/O Mode (Mode 0):
+if ( CWR[2]=1'b0 && CWR[6:5]=2'b00 )
+begin
+case (A)
+  2'b00: if ( (!nRD) && CWR[4]=1'b1 ) 
+       begin Data<=PA; end
+       else         
+       begin PA<=Data; end 
+
+2'b01: if ( (!nRD) && (CWR[1]=1'b1) )
+       begin Data<=PB; end
+       else         
+       begin PB<=Data; end 
+
+2'b10: if ( (!nRD) && (CWR[0]=1'b1) ) 
+       begin Data<=PCL; end
+       else if ( (!nRD) && (CWR[3]=1'b1)  )       
+       begin Data<=PCH; end
+       //Write Operation:
+       else if ( (!nWR) && (CWR[0]=1'b0) )
+       begin PCL<=Data; end
+       else if ( (!nWR) && (CWR[3]=1'b0) )
+       begin PCH<=Data; end
+
+endcase
+end
+
+end   //bta3et al else 
+
+end  // bta3et al If al kebera..
+
+end //always
+
+endmodule
+
+
+module tb_PPI ();
+reg reset, nCS, nRD, nWR;
+reg  [1:0] A;
+wire [7:0] PA, [7:0] PB;
+wire [7:0] PC, [7:0] Data;
+reg [7:0] CWR;
+wire [3:0] PCH, [3:0] PCL;
+
+PPI_Chip new_test (PA, PB, PCL, Data, nRD, nWR, nCS, A, reset);
+
+initial
+fork
+$monitor("%b %b %b",CWR,Data,PA);
+A=2'b11;
+reset = 1'b0;
+nCS=1'b1;
+nRD=1'b1, nWR=1'b1 ;
+CWR=8'b0000_0000 ;
+#10
+A = 2'b11;
+#10
+nCS = 1'b0;
+#10
+nWR = 1'b0;
+#10
+Data = 8'b10001011;
+#20
+A = 2'b00;
+#20
+nCS = 1'b0;
+#20
+nWR = 1'b0;
+#20
+Data = 8'b00011001;
+
+join
+
+endmodule
+
+
+
+
+
